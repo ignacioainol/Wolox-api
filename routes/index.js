@@ -16,8 +16,27 @@ router.get('/api/users', async (req, res) => {
 //obtener todas las fotos
 router.get('/api/photos', async (req, res) => {
     try {
-        const photos = await axios.get('https://jsonplaceholder.typicode.com/photos');
-        res.status(200).json(photos.data);
+        const { data: photos } = await axios.get('https://jsonplaceholder.typicode.com/photos');
+        if (req.query) {
+            const { data: albums } = await axios.get('https://jsonplaceholder.typicode.com/albums');
+            const userId = req.query.userId;
+            const albumsByUserId = albums.filter(album => album.userId === parseInt(userId));
+            const photosByAlbumUser = [];
+            photos.forEach(photo => {
+                albumsByUserId.forEach(album => {
+                    if (photo.albumId === album.id) {
+                        photo.userId = userId;
+                        photosByAlbumUser.push(photo);
+                    }
+                });
+            });
+            if (photosByAlbumUser.length > 0) {
+                res.status(200).send(photosByAlbumUser);
+            } else {
+                res.status(404).send(`No hay fotos para el usuario de id ${userId}`);
+            }
+        }
+        res.status(200).json(photos);
     } catch (error) {
         console.log(error);
         res.status(500).send(error);
@@ -26,8 +45,8 @@ router.get('/api/photos', async (req, res) => {
 
 //obtener todos los albums
 router.get('/api/albums', async (req, res) => {
-    const { data: albums } = await axios.get('https://jsonplaceholder.typicode.com/albums');
     try {
+        const { data: albums } = await axios.get('https://jsonplaceholder.typicode.com/albums');
         if (req.query) {
             if (req.query.userId) {
                 const userId = req.query.userId;
@@ -43,19 +62,9 @@ router.get('/api/albums', async (req, res) => {
 
         res.status(200).json(albums);
     } catch (error) {
-
+        res.status(500).send(error);
     }
 });
 
-//Obtener albumes por id de user
-// router.get('/api/albums/:userId', async (req, res) => {
-//     try {
-//         const userId = req.params.userId;
-//         const albumsByUserId = await axios.get(`https://jsonplaceholder.typicode.com/albums?userId=${userId}`);
-//         res.status(200).json(albumsByUserId.data);
-//     } catch (error) {
-//         console.log(error);
-//     }
-// })
 
 module.exports = router;
